@@ -1,0 +1,645 @@
+package com.example.demo.entity;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "industry")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Industry {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private int sl_no;
+	private String ticker;
+	private String category;
+	private String maturity;
+	private String industries;
+	private String sector;
+	private String pricing;
+	private String pricing_information;
+	private int free_trial;
+	private String channel;
+	
+	private int year;
+	private float yoy_arr_growth_rate;
+	private float yoy_customer_growth_rate;
+	private float magic_no;
+	private float payback_period;
+	private float cac_ratio;
+	private float net_revenue_retention;
+	private float gross_margin;
+	private float arr_per_customer;
+	private float operating_margin;
+	private float sales_marketing;
+	private float fcf;
+	private float arpu_growth_rate;
+	private float profit_margin;
+	private float yoy_net_income_growth;
+	private float yoy_operating_income_growth;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.example.demo.entity;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Entity
+@Table(name = "company")
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class Company {
+	@Id
+	@GeneratedValue(strategy = GenerationType.IDENTITY)
+	private int sl_no;
+	private String ticker;
+	private int year;
+	private float yoy_arr_growth_rate;
+	private float yoy_customer_growth_rate;
+	private float magic_no;
+	private float payback_period;
+	private float cac_ratio;
+	private float net_revenue_retention;
+	private float gross_margin;
+	private float arr_per_customer;
+	private float operating_margin;
+	private float sales_marketing;
+	private float fcf;
+	private float arpu_growth_rate;
+	private float profit_margin;
+	private float yoy_net_income_growth;
+	private float yoy_operating_income_growth;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.example.demo.controller;
+
+import java.util.List;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.demo.modal.CompanyData;
+import com.example.demo.modal.IndustryMetrics;
+import com.example.demo.service.IndustryService;
+
+@RestController
+public class controller {
+	
+	@Autowired
+	private IndustryService industryService;
+	
+	@GetMapping("/iv/revenue")
+	public IndustryMetrics getRevenue(
+				@RequestParam(value = "maturity", required = false) List<String> maturity,
+				@RequestParam(value = "sector", required = false) List<String> sector,
+				@RequestParam(value = "year", required = false) List<Integer> year,
+				@RequestParam(value = "industry", required = false) List<String> industries
+			) {
+		
+		System.out.println("Maturity: " + (maturity));
+		System.out.println("Sectors: " + (sector));
+		System.out.println("Years: " + (year));
+		System.out.println("Industries: " + (industries));
+		
+		return industryService.getIndustryStatistics(maturity, sector, industries, year);
+	}
+	
+	
+	@PostMapping("/cv/revenue")
+	public String InsertCompanyRevenue(@RequestBody CompanyData company) {
+		if(company == null) {
+			return "Empty industry";
+		}
+		else {
+			System.out.println(company.toString());
+			return "Present company";
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.example.demo.repository;
+
+import java.util.List;
+
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+
+import com.example.demo.entity.Industry;
+
+@Repository
+public interface IndustryRepo extends JpaRepository<Industry, Integer>{
+	
+	List<Industry> findByTicker(String ticker);
+
+	@Query("SELECT " +
+            "ROUND(AVG(subquery.gr"
+            + "ossMarginAverage), 2) AS totalGrossmarginAverage, " +
+            "ROUND(AVG(subquery.operatingMarginAverage), 2) AS totalOperationAverage, " +
+            "ROUND(AVG(subquery.profitMarginAverage), 2) AS totalProfitAverage, " +
+            "ROUND(AVG(subquery.fcfMarginAverage), 2) AS totalFCF " +
+        "FROM " +
+            "(SELECT " +
+                "AVG(i.gross_margin) AS grossMarginAverage, " +
+                "AVG(i.operating_margin) AS operatingMarginAverage, " +
+                "AVG(i.profit_margin) AS profitMarginAverage, " +
+                "AVG(i.fcf) AS fcfMarginAverage " +
+            "FROM " +
+                "Industry i " +
+                "WHERE (:maturity IS NULL OR i.maturity IN :maturity) " +
+                "AND (:sector IS NULL OR i.sector IN :sector) " +
+                "AND (:industries IS NULL OR i.industries IN :industries) " +
+                "AND (:year IS NULL OR i.year IN :year) " +
+            "GROUP BY " +
+                "i.year) AS subquery")
+	List<Object[]> calculateTotalAverages(@Param("maturity") List<String> maturity, 
+            @Param("sector") List<String> sector, 
+            @Param("industries") List<String> industries,
+            @Param("year") List<Integer> year);
+	
+	
+	@Query("SELECT i.year, " +
+            "ROUND(AVG(i.gross_margin), 2) AS grossmargin_average, " +
+            "ROUND(AVG(i.operating_margin), 2) AS operatingmargin_average, " +
+            "ROUND(AVG(i.profit_margin), 2) AS profitmargin_average, " +
+            "ROUND(AVG(i.fcf), 2) AS fcfmargin_average " +
+            "FROM Industry i " +
+            "WHERE (:maturity IS NULL OR i.maturity IN :maturity) " +
+            "AND (:sector IS NULL OR i.sector IN :sector) " +
+            "AND (:industries IS NULL OR i.industries IN :industries) " +
+            "AND (:year IS NULL OR i.year IN :year) " +
+            "GROUP BY i.year")
+	List<Object[]> getIndustryStatistics(@Param("maturity") List<String> maturity, 
+                                     @Param("sector") List<String> sector, 
+                                     @Param("industries") List<String> industries,
+                                     @Param("year") List<Integer> year);
+
+	
+	
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.example.demo.service;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.example.demo.entity.Industry;
+import com.example.demo.modal.IndustryMetrics;
+import com.example.demo.modal.Metric;
+import com.example.demo.modal.YearWiseData;
+import com.example.demo.repository.IndustryRepo;
+
+@Service
+public class IndustryService {
+	
+	@Autowired
+	private IndustryRepo industryRepository;
+	
+	public Industry getIndustryByTicker(String ticker) {
+	    List<Industry> industries = industryRepository.findByTicker(ticker);
+	    if (!industries.isEmpty()) {
+	        return industries.get(0); 
+	    } else {
+	        return null; 
+	    }
+	}
+	
+	
+	public IndustryMetrics getIndustryStatistics(List<String> maturity, 
+            									List<String> sector, 
+            									List<String> industries,
+            									List<Integer> year) 
+	{
+		String[] metricNames = { "Gross Margin", "Operational Margin", "Profit Margin", "fcf" };
+		List<Object []> yearWiseAverage = industryRepository.getIndustryStatistics(maturity, sector, industries, year);
+		List<Object []> totalAverage = industryRepository.calculateTotalAverages(maturity, sector, industries, year);
+       
+		double[] totalMarginWiseAverage = new double[totalAverage.get(0).length];
+        for (int i = 0; i < totalAverage.get(0).length; i++) {
+            totalMarginWiseAverage[i] = ((Number) totalAverage.get(0)[i]).doubleValue();
+        }
+
+        double[][] yearWiseMarginAverage = new double[yearWiseAverage.size()][];
+		for (int i = 0; i < yearWiseAverage.size(); i++) {
+		    Object[] rowData = yearWiseAverage.get(i);
+		    double[] yearData = new double[rowData.length];
+		    for (int j = 0; j < yearData.length; j++) {
+		        yearData[j] = ((Number) (rowData[j])).doubleValue();
+		    }
+		    yearWiseMarginAverage[i] = yearData;
+		}
+        
+        List<Metric> metrics = new ArrayList<>();
+
+        for (int i = 0; i < metricNames.length; i++) {
+            Metric metric = new Metric();
+            metric.setAverage(totalMarginWiseAverage[i]);
+
+            YearWiseData yearWiseData = new YearWiseData();
+            Map<Integer, Double> yearData = new HashMap<>();
+            for (int j = 0; j < yearWiseMarginAverage.length; j++) {
+                yearData.put((int) yearWiseMarginAverage[j][0], yearWiseMarginAverage[j][i+1]);
+            }
+            yearWiseData.setYearData(yearData);
+            metric.setYearWiseData(yearWiseData);
+
+            metrics.add(metric);
+        }
+
+        IndustryMetrics industryMetrics = new IndustryMetrics();
+
+        Map<String, Metric> metricMap = new HashMap<>();
+        for (int i = 0; i < metricNames.length; i++) {
+            metricMap.put(metricNames[i], metrics.get(i));
+        }
+        industryMetrics.setMetrics(metricMap);
+
+        System.out.println("Industry Metrics:");
+        for (Map.Entry<String, Metric> entry : industryMetrics.getMetrics().entrySet()) {
+            System.out.println("  " + entry.getKey() + ":");
+            System.out.println("    Average: " + entry.getValue().getAverage());
+            System.out.println("    Year Wise Data: " + entry.getValue().getYearWiseData().getYearData());
+        }
+
+        return industryMetrics;
+	}
+
+	
+	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.example.demo.modal;
+
+import java.util.Map;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class CompanyData {
+	private String companyId;
+	private String companyName;
+	private Map<String, CompanyMetrics> companyMetrics;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.example.demo.modal;
+
+import java.util.Map;
+
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class CompanyMetrics {
+	private int average;
+	private Map<String, Integer> yearWiseData;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.example.demo.modal;
+
+public class IndustryData {
+    private String industryName;
+    private IndustryMetrics industryMetrics;
+
+    public String getIndustryName() {
+        return industryName;
+    }
+
+    public void setIndustryName(String industryName) {
+        this.industryName = industryName;
+    }
+
+    public IndustryMetrics getIndustryMetrics() {
+        return industryMetrics;
+    }
+
+    public void setIndustryMetrics(IndustryMetrics industryMetrics) {
+        this.industryMetrics = industryMetrics;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.example.demo.modal;
+
+import java.util.Map;
+
+public class IndustryMetrics {
+	private Map<String, Metric> metrics;
+	
+	public Map<String, Metric> getMetrics() {
+        return metrics;
+    }
+
+    public void setMetrics(Map<String, Metric> metrics) {
+        this.metrics = metrics;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.example.demo.modal;
+
+
+public class Metric {
+    private double average;
+    private YearWiseData yearWiseData;
+
+    public double getAverage() {
+        return average;
+    }
+
+    public void setAverage(double average) {
+        this.average = average;
+    }
+
+    public YearWiseData getYearWiseData() {
+        return yearWiseData;
+    }
+
+    public void setYearWiseData(YearWiseData yearWiseData) {
+        this.yearWiseData = yearWiseData;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.example.demo.modal;
+
+import java.util.Map;
+
+public class YearWiseData {
+	private Map<Integer, Double> yearData;
+
+    public Map<Integer, Double> getYearData() {
+        return yearData;
+    }
+
+    public void setYearData(Map<Integer, Double> yearData) {
+        this.yearData = yearData;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
